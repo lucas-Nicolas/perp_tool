@@ -36,7 +36,8 @@ type StreamingChoice struct {
 
 // StreamingResponse represents a single chunk from the API stream.
 type StreamingResponse struct {
-	Choices []StreamingChoice `json:"choices"`
+	Choices   []StreamingChoice `json:"choices"`
+	Citations []string          `json:"citations,omitempty"`
 }
 
 func main() {
@@ -99,6 +100,7 @@ func main() {
 		fmt.Printf("Error: received status %d\n%s\n", resp.StatusCode, string(body))
 		os.Exit(1)
 	}
+	var citations []string
 
 	// Process the stream.
 	reader := bufio.NewReader(resp.Body)
@@ -133,6 +135,9 @@ func main() {
 				fmt.Println("Error parsing JSON:", err)
 				continue
 			}
+			if len(streamResp.Choices) > 0 && len(citations) == 0 {
+				citations = streamResp.Citations
+			}
 
 			// Print only the text content.
 			for _, choice := range streamResp.Choices {
@@ -156,6 +161,16 @@ func main() {
 				}
 				fmt.Print(content)
 			}
+
 		}
 	}
+	// Print citations as clickable links.
+	if len(citations) != 0 {
+
+		fmt.Println("\n\nCitations:")
+		for i, citation := range citations {
+			fmt.Printf("[%d] :%s\t", i+1, citation)
+		}
+	}
+
 }
