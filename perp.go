@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/spf13/pflag"
 )
 
 // Message represents a message in the conversation.
@@ -20,12 +21,9 @@ type Message struct {
 
 // RequestPayload is the structure sent to the Perplexity API.
 type RequestPayload struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	MaxTokens   int       `json:"max_tokens"`
-	Temperature float64   `json:"temperature"`
-	TopP        float64   `json:"top_p"`
-	Stream      bool      `json:"stream"`
+	Model    string    `json:"model"`
+	Messages []Message `json:"messages"`
+	Stream   bool      `json:"stream"`
 }
 
 // StreamingChoice represents one choice in the streaming response.
@@ -43,26 +41,23 @@ type StreamingResponse struct {
 func main() {
 	// Parse command-line flags.
 	var model string
-	var silent bool
-	flag.StringVar(&model, "m", "sonar", "Model name to use (defaults to sonar)")
-	flag.BoolVar(&silent, "s", false, "Silent mode (no citations)")
-	flag.Parse()
+	var cite bool
+	pflag.StringVarP(&model, "model", "m", "sonar", "Model name to use (defaults to mistral-large-latest)")
+	pflag.BoolVarP(&cite, "cite", "c", false, "citing mode (display citations)")
+	pflag.Parse()
 
 	// Ensure the query is provided.
-	args := flag.Args()
+	args := pflag.Args()
 	if len(args) < 1 {
-		fmt.Println("Usage: perp \"<query>\" --m <model name>")
+		fmt.Println("Usage: perp \"<query>\" [-m <model name>] [-c]")
 		os.Exit(1)
 	}
 	query := args[0]
 
 	// Build the request payload.
 	payload := RequestPayload{
-		Model:       model,
-		MaxTokens:   123,
-		Temperature: 0.2,
-		TopP:        0.9,
-		Stream:      true, // Enable streaming.
+		Model:  model,
+		Stream: true, // Enable streaming.
 		Messages: []Message{
 			{Role: "system", Content: "Be precise and concise."},
 			{Role: "user", Content: query},
@@ -168,7 +163,7 @@ func main() {
 		}
 	}
 	// Print citations as clickable links.
-	if len(citations) != 0 && !silent {
+	if len(citations) != 0 && cite {
 
 		fmt.Println("\n\nCitations:")
 		for i, citation := range citations {
