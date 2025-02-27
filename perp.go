@@ -42,20 +42,23 @@ type StreamingResponse struct {
 
 func main() {
 	// Parse command-line flags.
-	model := flag.String("model", "sonar", "Model name to use (defaults to sonar)")
+	var model string
+	var silent bool
+	flag.StringVar(&model, "m", "sonar", "Model name to use (defaults to sonar)")
+	flag.BoolVar(&silent, "s", false, "Silent mode (no citations)")
 	flag.Parse()
 
 	// Ensure the query is provided.
 	args := flag.Args()
 	if len(args) < 1 {
-		fmt.Println("Usage: perp \"<query>\" --model <model name>")
+		fmt.Println("Usage: perp \"<query>\" --m <model name>")
 		os.Exit(1)
 	}
 	query := args[0]
 
 	// Build the request payload.
 	payload := RequestPayload{
-		Model:       *model,
+		Model:       model,
 		MaxTokens:   123,
 		Temperature: 0.2,
 		TopP:        0.9,
@@ -165,11 +168,11 @@ func main() {
 		}
 	}
 	// Print citations as clickable links.
-	if len(citations) != 0 {
+	if len(citations) != 0 && !silent {
 
 		fmt.Println("\n\nCitations:")
 		for i, citation := range citations {
-			fmt.Printf("[%d] :%s\t", i+1, citation)
+			fmt.Printf("[%d]: %s\t", i+1, citation)
 		}
 	}
 
